@@ -288,6 +288,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
     { id: 'profile', label: t('userProfile') },
     { id: 'charge', label: t('chargeCodeBtn') },
     { id: 'my-courses', label: t('myCourses') },
+    { id: 'leaderboard', label: 'لوحة الشرف (الأوائل)' },
     { id: 'security', label: t('securityAndLogins') },
     { id: 'views', label: t('viewsDetails') },
     { id: 'invoices', label: 'عمليات الشحن' },
@@ -701,6 +702,44 @@ export default function Profile({ onNavigate }: ProfileProps) {
                   </div>
                 </div>
 
+              </div>
+            ) : activeTab === 'leaderboard' ? (
+              <div className="space-y-8 animate-in fade-in duration-300">
+                <div className="flex flex-col items-center justify-center gap-3 mb-8">
+                  <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center mb-2">
+                    <Star className="w-8 h-8 text-amber-500" />
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">
+                      لوحة الشرف للأوائل
+                  </h2>
+                  <p className="text-slate-500 text-center max-w-lg">
+                    الطلاب الأكثر تفوقاً وإنجازاً في المنصة. اجتهد لتكون منهم!
+                  </p>
+                </div>
+
+                <div className="max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+                  {[
+                     { name: 'أحمد محمود', points: 980, rank: 1 },
+                     { name: 'سارة خالد', points: 945, rank: 2 },
+                     { name: 'محمد علي', points: 910, rank: 3 },
+                     { name: 'فاطمة حسن', points: 880, rank: 4 },
+                     { name: userData?.name || 'أنت', points: stats.examsFinished * 10, rank: 125, isMe: true }
+                  ].map((student, idx) => (
+                    <div key={idx} className={`flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700/50 last:border-0 ${student.isMe ? 'bg-burgundy-50 dark:bg-burgundy-900/20' : ''}`}>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 flex items-center justify-center rounded-full font-bold ${student.rank === 1 ? 'bg-amber-400 text-white' : student.rank === 2 ? 'bg-slate-300 text-slate-700' : student.rank === 3 ? 'bg-amber-700 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                           {student.rank}
+                        </div>
+                        <span className={`font-bold ${student.isMe ? 'text-burgundy-600 dark:text-burgundy-400' : 'text-slate-800 dark:text-white'}`}>
+                           {student.name} {student.isMe && '(أنت)'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-amber-500 font-bold bg-amber-50 dark:bg-amber-500/10 px-3 py-1 rounded-full text-sm">
+                         {student.points} نقطة
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : activeTab === 'my-courses' ? (
               <div className="space-y-8 animate-in fade-in duration-300">

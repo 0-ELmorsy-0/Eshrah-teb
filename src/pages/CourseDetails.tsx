@@ -56,6 +56,29 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
   const [totalItemsCount, setTotalItemsCount] = useState(0);
   const [viewedVideoUrls, setViewedVideoUrls] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState('');
+  
+  // Pomodoro Timer State
+  const [pomodoroTime, setPomodoroTime] = useState(25 * 60);
+  const [isPomodoroRunning, setIsPomodoroRunning] = useState(false);
+
+  useEffect(() => {
+    let interval: any;
+    if (isPomodoroRunning && pomodoroTime > 0) {
+      interval = setInterval(() => {
+        setPomodoroTime(prev => prev - 1);
+      }, 1000);
+    } else if (pomodoroTime === 0) {
+      setIsPomodoroRunning(false);
+      alert('انتهى وقت التركيز! خذ استراحة قصيرة.');
+    }
+    return () => clearInterval(interval);
+  }, [isPomodoroRunning, pomodoroTime]);
+
+  const formatPomodoro = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   useEffect(() => {
     if (activeVideo?.url) {
@@ -608,6 +631,18 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                 )}
               </div>
               
+              <div className="mt-6 flex items-center gap-2">
+                 <span className="text-burgundy-100 font-medium">تقييم الكورس:</span>
+                 <div className="flex text-amber-400">
+                    {[1,2,3,4,5].map(star => (
+                       <svg key={star} className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                       </svg>
+                    ))}
+                 </div>
+                 <span className="text-sm text-burgundy-100">(4.9 من 5) - بناءً على آراء 124 طالب</span>
+              </div>
+              
               {weeklySchedules && weeklySchedules.length > 0 && (
                 <div className="mt-8 flex justify-start">
                   <button 
@@ -663,6 +698,35 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                       placeholder="اكتب ملاحظاتك هنا أثناء مشاهدة الدرس... (يتم الحفظ تلقائياً)"
                       className="w-full min-h-[120px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-burgundy-500 resize-y"
                     ></textarea>
+                 </div>
+                 
+                 <div className="mt-2 border-t border-slate-100 dark:border-slate-800 pt-6">
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-4">
+                       <div className="flex items-center gap-2">
+                           <Clock3 className="w-5 h-5 text-burgundy-500" />
+                           <h4 className="font-bold text-slate-800 dark:text-white text-lg">مؤقت التركيز (Pomodoro)</h4>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <span className="text-2xl font-bold font-mono text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-900 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                             {formatPomodoro(pomodoroTime)}
+                          </span>
+                          <button 
+                             onClick={() => {
+                               if (!isPomodoroRunning && pomodoroTime === 0) setPomodoroTime(25 * 60);
+                               setIsPomodoroRunning(!isPomodoroRunning);
+                             }}
+                             className={`px-4 py-2 rounded-xl font-bold text-sm ${isPomodoroRunning ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-burgundy-500 text-white hover:bg-burgundy-600'}`}
+                          >
+                             {isPomodoroRunning ? 'إيقاف مؤقت' : 'ابدأ التركيز'}
+                          </button>
+                          <button 
+                             onClick={() => { setIsPomodoroRunning(false); setPomodoroTime(25 * 60); }}
+                             className="px-3 py-2 rounded-xl font-bold text-sm bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+                          >
+                             إعادة
+                          </button>
+                       </div>
+                    </div>
                  </div>
               </div>
             )}
