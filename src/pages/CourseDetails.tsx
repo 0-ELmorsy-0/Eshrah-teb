@@ -55,6 +55,16 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
   const [completedItemsCount, setCompletedItemsCount] = useState(0);
   const [totalItemsCount, setTotalItemsCount] = useState(0);
   const [viewedVideoUrls, setViewedVideoUrls] = useState<Set<string>>(new Set());
+  const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (activeVideo?.url) {
+      const saved = localStorage.getItem(`notes_${activeVideo.url}`);
+      setNotes(saved || '');
+    } else {
+      setNotes('');
+    }
+  }, [activeVideo]);
 
 
   const recordVideoView = async (videoTitle: string, videoUrl: string) => {
@@ -447,8 +457,12 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
 
     setTotalItemsCount(total);
     setCompletedItemsCount(completed);
-    setCourseProgress(total > 0 ? Math.round((completed / total) * 100) : 0);
-  }, [dbSubjects, userAttempts, viewedVideoUrls]);
+    const calculatedProgress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    setCourseProgress(calculatedProgress);
+    if (course?.id) {
+       localStorage.setItem(`course_progress_${course.id}`, calculatedProgress.toString());
+    }
+  }, [dbSubjects, userAttempts, viewedVideoUrls, course?.id]);
 
   useEffect(() => {
     setIsSubscribed(hasSubscription(String(course?.id || '')));
@@ -632,8 +646,24 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                </div>
             )}
             {activeVideo && (
-              <div className="p-6 bg-white dark:bg-[#151b23] border-t border-slate-200 dark:border-slate-800">
+              <div className="p-6 bg-white dark:bg-[#151b23] border-t border-slate-200 dark:border-slate-800 flex flex-col gap-4">
                  <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">{activeVideo.title}</h3>
+                 
+                 <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-6">
+                    <div className="flex items-center gap-2 mb-3">
+                       <FileText className="w-5 h-5 text-burgundy-500" />
+                       <h4 className="font-bold text-slate-800 dark:text-white text-lg">ملاحظاتي</h4>
+                    </div>
+                    <textarea 
+                      value={notes}
+                      onChange={(e) => {
+                        setNotes(e.target.value);
+                        localStorage.setItem(`notes_${activeVideo.url}`, e.target.value);
+                      }}
+                      placeholder="اكتب ملاحظاتك هنا أثناء مشاهدة الدرس... (يتم الحفظ تلقائياً)"
+                      className="w-full min-h-[120px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-burgundy-500 resize-y"
+                    ></textarea>
+                 </div>
               </div>
             )}
           </div>

@@ -248,6 +248,7 @@ export default function Courses({ onNavigate, isLoggedIn, userSemester }: Course
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [dbCourses, setDbCourses] = useState<any[]>([]);
   const [dbFreeCourses, setDbFreeCourses] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     async function fetchData() {
@@ -320,13 +321,13 @@ export default function Courses({ onNavigate, isLoggedIn, userSemester }: Course
     }
   }, [isLoggedIn, userSemester]);
 
-  const courses = dbCourses.filter(c => c.semester === selectedSemester);
-  const freeCourses = dbFreeCourses.filter(c => c.semester === selectedSemester);
+  const courses = dbCourses.filter(c => c.semester === selectedSemester && c.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  const freeCourses = dbFreeCourses.filter(c => c.semester === selectedSemester && c.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
   useEffect(() => {
     setActiveIndex(0);
     setActiveFreeIndex(0);
-  }, [selectedSemester]);
+  }, [selectedSemester, searchQuery]);
 
   useEffect(() => {
     if (courses.length === 0) return;
@@ -344,6 +345,18 @@ export default function Courses({ onNavigate, isLoggedIn, userSemester }: Course
 
   return (
     <section className="px-4 py-20 bg-slate-50 dark:bg-[#0b121c] relative flex flex-col gap-16">
+      
+      {/* Search Bar */}
+      <div className="max-w-xl mx-auto w-full px-4 mb-4">
+        <input 
+          type="text"
+          placeholder="ابحث عن كورس معين..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-6 text-slate-800 dark:text-white placeholder-slate-400 focus:border-burgundy-500 dark:focus:border-burgundy-500 focus:outline-none shadow-sm transition-colors text-center font-bold"
+        />
+      </div>
+
       {/* Semester Selector */}
       {!isLoggedIn && (
         <div className="max-w-4xl mx-auto w-full mb-8">

@@ -162,12 +162,15 @@ export default function Profile({ onNavigate }: ProfileProps) {
         if (payCoursesData && !payError) combinedData = [...combinedData, ...payCoursesData];
         if (freeCoursesData && !freeError) combinedData = [...combinedData, ...freeCoursesData];
 
-        const mappedCourses = combinedData.map(d => ({
-          id: d.id,
-          image: d.image_url || "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=800&auto=format&fit=crop",
-          title: d.title,
-          progress: Math.floor(Math.random() * 100)
-        }));
+        const mappedCourses = combinedData.map(d => {
+          const storedProgress = localStorage.getItem(`course_progress_${d.id}`);
+          return {
+            id: d.id,
+            image: d.image_url || "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=800&auto=format&fit=crop",
+            title: d.title,
+            progress: storedProgress ? parseInt(storedProgress, 10) : 0
+          };
+        });
         setSubscribedCourses(mappedCourses);
       } catch (err) {
         console.error("Error fetching my courses:", err);
@@ -350,9 +353,15 @@ export default function Profile({ onNavigate }: ProfileProps) {
                   </div>
                   
                   <div className="flex-1 text-center md:text-right md:mt-2">
-                    <h2 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white mb-4">
-                       {userData?.name || "جاري التحميل..."}
-                    </h2>
+                    <div className="flex flex-col md:flex-row items-center md:items-center gap-3 mb-4">
+                      <h2 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">
+                         {userData?.name || "جاري التحميل..."}
+                      </h2>
+                      <span className="bg-gradient-to-r from-amber-500 to-amber-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md flex items-center gap-1">
+                         <Star className="w-3 h-3" />
+                         {stats.examsFinished > 20 ? 'طالب خبير' : stats.examsFinished > 10 ? 'طالب متقدم' : stats.examsFinished > 5 ? 'طالب متوسط' : 'طالب مبتدئ'}
+                      </span>
+                    </div>
                     <div className="flex flex-col items-center md:items-start gap-4 text-slate-600 dark:text-slate-400 text-sm md:text-base font-medium">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-burgundy-50 dark:bg-burgundy-500/10 flex items-center justify-center">

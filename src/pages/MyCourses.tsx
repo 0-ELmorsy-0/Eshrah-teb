@@ -40,14 +40,17 @@ export default function MyCourses({ onNavigate, userSemester }: MyCoursesProps) 
         if (payCoursesData && !payError) combinedData = [...combinedData, ...payCoursesData];
         if (freeCoursesData && !freeError) combinedData = [...combinedData, ...freeCoursesData];
 
-        const mappedCourses = combinedData.map(d => ({
-          id: d.id,
-          image: d.image_url || "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=800&auto=format&fit=crop",
-          title: d.title,
-          progress: Math.floor(Math.random() * 100), // Mock progress for now
-          price: d.price || 'مجانًا',
-          features: d.features || []
-        }));
+        const mappedCourses = combinedData.map(d => {
+          const storedProgress = localStorage.getItem(`course_progress_${d.id}`);
+          return {
+            id: d.id,
+            image: d.image_url || "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=800&auto=format&fit=crop",
+            title: d.title,
+            progress: storedProgress ? parseInt(storedProgress, 10) : 0,
+            price: d.price || 'مجانًا',
+            features: d.features || []
+          };
+        });
         setSubscribedCourses(mappedCourses);
       } catch (err) {
         console.error("Error fetching my courses:", err);
