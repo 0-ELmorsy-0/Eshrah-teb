@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useRef, useState, useEffect } from 'react';
-import html2canvas from 'html2canvas';
+import { toPng, toBlob } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 import { CourseData } from '../../App';
@@ -31,13 +31,16 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
     if (!certificateRef.current) return;
     try {
       setIsDownloading(true);
-      const canvas = await html2canvas(certificateRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: true,
-        backgroundColor: '#ffffff'
+      // Ensure element is visible
+      const imgData = await toPng(certificateRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+        }
       });
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
@@ -62,53 +65,52 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
     if (!certificateRef.current) return;
     try {
       setIsSharing(true);
-      const canvas = await html2canvas(certificateRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: true,
-        backgroundColor: '#ffffff'
+      const blob = await toBlob(certificateRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+        }
       });
       
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          toast.error('حدث خطأ أثناء تحضير الشهادة.');
-          setIsSharing(false);
-          return;
-        }
-
-        const fileName = `Certificate_${courseTitle.replace(/\s+/g, '_')}.png`;
-        const file = new File([blob], fileName, { type: 'image/png' });
-
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              title: 'شهادة إتمام دورة',
-              text: `لقد أتممت بنجاح دورة ${courseTitle} على منصة إشرح طب!`,
-              files: [file]
-            });
-            toast.success('تمت المشاركة بنجاح');
-          } catch (error: any) {
-            // Ignore AbortError which happens when user cancels the share dialog
-            if (error.name !== 'AbortError') {
-              console.error('Error sharing:', error);
-              toast.error('حدث خطأ أثناء المشاركة.');
-            }
-          }
-        } else {
-          // Fallback: download as PNG if sharing is not supported (e.g. in desktop or iframe)
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          toast.success('تم تحميل الصورة بنجاح (المشاركة المباشرة غير مدعومة في متصفحك)');
-        }
+      if (!blob) {
+        toast.error('حدث خطأ أثناء تحضير الشهادة.');
         setIsSharing(false);
-      }, 'image/png');
-      
+        return;
+      }
+
+      const fileName = `Certificate_${courseTitle.replace(/\s+/g, '_')}.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: 'شهادة إتمام دورة',
+            text: `لقد أتممت بنجاح دورة ${courseTitle} على منصة إشرح طب!`,
+            files: [file]
+          });
+          toast.success('تمت المشاركة بنجاح');
+        } catch (error: any) {
+          if (error.name !== 'AbortError') {
+            console.error('Error sharing:', error);
+            toast.error('حدث خطأ أثناء المشاركة.');
+          }
+        }
+      } else {
+        // Fallback: download as PNG
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('تم تحميل الصورة بنجاح (المشاركة المباشرة غير مدعومة في متصفحك)');
+      }
+      setIsSharing(false);
     } catch (error) {
       console.error('Failed to generate image for sharing:', error);
       toast.error('حدث خطأ أثناء التحضير للمشاركة. يرجى المحاولة مرة أخرى.');
@@ -256,13 +258,12 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
                       
                       <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                         {isReady && (
-                          <div style={{ marginBottom: '12px', border: '2px solid #fff', outline: '2px solid #0f172a', background: '#fff', padding: '2px', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <img 
-                              src="/eshrah_logo.jpg" 
-                              alt="Logo" 
-                              crossOrigin="anonymous"
-                              style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
-                            />
+                          <div style={{ marginBottom: '12px', border: '2px solid #fff', outline: '2px solid #0f172a', background: '#fff', padding: '4px', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{
+                              width: '100%', height: '100%', backgroundColor: '#8e1f2c', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: '14px', textAlign: 'center', lineHeight: 1.1
+                            }}>
+                              إشرح<br/>طب
+                            </div>
                           </div>
                         )}
                         <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600, direction: 'ltr' }}>
