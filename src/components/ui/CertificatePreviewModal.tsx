@@ -34,7 +34,7 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
       const canvas = await html2canvas(certificateRef.current, {
         scale: 2,
         useCORS: true,
-        logging: false,
+        logging: true,
         backgroundColor: '#ffffff'
       });
       const imgData = canvas.toDataURL('image/png');
@@ -65,7 +65,7 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
       const canvas = await html2canvas(certificateRef.current, {
         scale: 2,
         useCORS: true,
-        logging: false,
+        logging: true,
         backgroundColor: '#ffffff'
       });
       
@@ -95,8 +95,16 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
             }
           }
         } else {
-          // Fallback
-          toast.error('عذراً، متصفحك لا يدعم خاصية مشاركة الصور مباشرة.');
+          // Fallback: download as PNG if sharing is not supported (e.g. in desktop or iframe)
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast.success('تم تحميل الصورة بنجاح (المشاركة المباشرة غير مدعومة في متصفحك)');
         }
         setIsSharing(false);
       }, 'image/png');
@@ -252,6 +260,7 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
                             <img 
                               src="/eshrah_logo.jpg" 
                               alt="Logo" 
+                              crossOrigin="anonymous"
                               style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
                             />
                           </div>
