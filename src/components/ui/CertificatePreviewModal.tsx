@@ -17,6 +17,7 @@ interface CertificatePreviewModalProps {
 export default function CertificatePreviewModal({ isOpen, onClose, studentName, gender, courseTitle }: CertificatePreviewModalProps) {
   const certificateRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -55,6 +56,56 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
       toast.error('حدث خطأ أثناء تحميل الشهادة. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!certificateRef.current) return;
+    try {
+      setIsSharing(true);
+      const canvas = await html2canvas(certificateRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          toast.error('حدث خطأ أثناء تحضير الشهادة.');
+          setIsSharing(false);
+          return;
+        }
+
+        const fileName = `Certificate_${courseTitle.replace(/\s+/g, '_')}.png`;
+        const file = new File([blob], fileName, { type: 'image/png' });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: 'شهادة إتمام دورة',
+              text: `لقد أتممت بنجاح دورة ${courseTitle} على منصة إشرح طب!`,
+              files: [file]
+            });
+            toast.success('تمت المشاركة بنجاح');
+          } catch (error: any) {
+            // Ignore AbortError which happens when user cancels the share dialog
+            if (error.name !== 'AbortError') {
+              console.error('Error sharing:', error);
+              toast.error('حدث خطأ أثناء المشاركة.');
+            }
+          }
+        } else {
+          // Fallback
+          toast.error('عذراً، متصفحك لا يدعم خاصية مشاركة الصور مباشرة.');
+        }
+        setIsSharing(false);
+      }, 'image/png');
+      
+    } catch (error) {
+      console.error('Failed to generate image for sharing:', error);
+      toast.error('حدث خطأ أثناء التحضير للمشاركة. يرجى المحاولة مرة أخرى.');
+      setIsSharing(false);
     }
   };
 
@@ -218,7 +269,7 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
             </div>
           </div>
 
-            <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex justify-end gap-3">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex justify-end gap-3 flex-wrap">
               <button 
                 onClick={onClose}
                 className="px-6 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -226,8 +277,28 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
                 إغلاق
               </button>
               <button 
+                onClick={handleShare}
+                disabled={isSharing || isDownloading}
+                className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-70 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors shadow-lg shadow-slate-900/20"
+              >
+                {isSharing ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    جاري التحضير...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                    مشاركة الشهادة
+                  </>
+                )}
+              </button>
+              <button 
                 onClick={handleDownload}
-                disabled={isDownloading}
+                disabled={isDownloading || isSharing}
                 className="bg-burgundy-500 hover:bg-burgundy-600 disabled:opacity-70 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors shadow-lg shadow-burgundy-500/20"
               >
                 {isDownloading ? (
