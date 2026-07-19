@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useRef, useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { QRCodeSVG } from 'qrcode.react';
+import toast from 'react-hot-toast';
 import { CourseData } from '../../App';
 
 interface CertificatePreviewModalProps {
@@ -47,8 +49,10 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`Certificate_${courseTitle.replace(/\s+/g, '_')}.pdf`);
+      toast.success('تم تحميل الشهادة بنجاح');
     } catch (error) {
       console.error('Failed to generate PDF:', error);
+      toast.error('حدث خطأ أثناء تحميل الشهادة. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsDownloading(false);
     }
@@ -91,21 +95,15 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
                   overflow: 'hidden'
                 }}
               >
-                {/* The actual certificate - fixed A4 dimensions to ensure rendering is correct before scale */}
+                {/* Wrapper that handles scaling */}
                 <div 
                   className="bg-white absolute top-0 left-0 origin-top-left"
                   style={{
                     width: '1123px', // A4 at 96dpi
                     height: '794px',
                     transform: `scale(var(--cert-scale, 1))`,
-                    padding: '24px',
-                    boxSizing: 'border-box',
-                    fontFamily: '"Cairo", sans-serif',
-                    color: '#0f172a',
-                    direction: 'rtl'
                   }}
                   ref={(el) => {
-                    certificateRef.current = el;
                     if (el && el.parentElement) {
                       const parent = el.parentElement;
                       const scaleX = parent.clientWidth / 1123;
@@ -113,7 +111,6 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
                       const scale = Math.min(scaleX, scaleY);
                       el.style.setProperty('--cert-scale', scale.toString());
                       
-                      // Also listen to resize
                       const ro = new ResizeObserver(() => {
                         const newScaleX = parent.clientWidth / 1123;
                         const newScaleY = parent.clientHeight / 794;
@@ -124,7 +121,21 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
                     }
                   }}
                 >
-                  <div style={{
+                  {/* The actual certificate - NO CSS Transform applied directly so html2canvas renders perfectly */}
+                  <div 
+                    ref={certificateRef}
+                    style={{
+                      width: '1123px', // A4 at 96dpi
+                      height: '794px',
+                      padding: '24px',
+                      boxSizing: 'border-box',
+                      fontFamily: '"Cairo", sans-serif',
+                      color: '#0f172a',
+                      direction: 'rtl',
+                      backgroundColor: '#fff'
+                    }}
+                  >
+                    <div style={{
                     border: '8px solid #0f172a',
                     borderRadius: '24px',
                     width: '100%',
@@ -187,12 +198,14 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
                       
                       <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                         {isReady && (
-                          <img 
-                            style={{ width: '60px', height: '60px', marginBottom: '12px', border: '2px solid #fff', outline: '2px solid #0f172a', objectFit: 'contain', background: '#fff' }} 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin)}`} 
-                            alt="QR Code" 
-                            crossOrigin="anonymous"
-                          />
+                          <div style={{ marginBottom: '12px', border: '2px solid #fff', outline: '2px solid #0f172a', background: '#fff', padding: '2px' }}>
+                            <QRCodeSVG 
+                              value={window.location.origin}
+                              size={56}
+                              level="L"
+                              includeMargin={false}
+                            />
+                          </div>
                         )}
                         <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600, direction: 'ltr' }}>
                           Issued: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} • ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}
@@ -203,6 +216,7 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
                 </div>
               </div>
             </div>
+          </div>
 
             <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex justify-end gap-3">
               <button 
