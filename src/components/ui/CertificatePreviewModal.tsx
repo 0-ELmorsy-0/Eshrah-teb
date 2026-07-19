@@ -2,7 +2,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useRef, useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { CourseData } from '../../App';
 
@@ -249,12 +248,11 @@ export default function CertificatePreviewModal({ isOpen, onClose, studentName, 
                       
                       <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                         {isReady && (
-                          <div style={{ marginBottom: '12px', border: '2px solid #fff', outline: '2px solid #0f172a', background: '#fff', padding: '2px' }}>
-                            <QRCodeCanvas 
-                              value={window.location.origin}
-                              size={56}
-                              level="L"
-                              includeMargin={false}
+                          <div style={{ marginBottom: '12px', border: '2px solid #fff', outline: '2px solid #0f172a', background: '#fff', padding: '2px', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <img 
+                              src="/eshrah_logo.jpg" 
+                              alt="Logo" 
+                              style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
                             />
                           </div>
                         )}
