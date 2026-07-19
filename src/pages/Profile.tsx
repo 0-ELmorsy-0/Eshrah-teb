@@ -209,7 +209,11 @@ export default function Profile({ onNavigate }: ProfileProps) {
     examsFinished: 0,
     totalExams: 0,
     averageResult: 0,
-    totalOpens: 0
+    totalOpens: 0,
+    videosWatched: 0,
+    totalVideoViews: 0,
+    totalLectureTime: 0,
+    totalVideosInPlatform: 0
   });
 
   useEffect(() => {
@@ -270,11 +274,28 @@ export default function Profile({ onNavigate }: ProfileProps) {
                     }
                   });
                   
-                  setStats({
-                    examsFinished,
-                    totalExams: totalAssessments,
-                    averageResult: validCount > 0 ? Math.round(totalPercent / validCount) : 0,
-                    totalOpens
+                  supabase.from('video_views').select('views_count, duration_minutes').eq('student_id', session.user.id).then(({ data: views }) => {
+                    const videosWatched = views?.length || 0;
+                    const totalVideoViews = views?.reduce((sum, v) => sum + (v.views_count || 1), 0) || 0;
+                    // Approximate lecture time: if duration_minutes is 0, estimate 20 minutes per unique video watched
+                    let totalLectureTime = views?.reduce((sum, v) => sum + (v.duration_minutes || 0), 0) || 0;
+                    if (totalLectureTime === 0 && videosWatched > 0) {
+                       totalLectureTime = videosWatched * 20;
+                    }
+                    
+                    // We'll estimate total videos in platform as 150 for now
+                    const totalVideosInPlatform = 150; 
+                    
+                    setStats({
+                      examsFinished,
+                      totalExams: totalAssessments,
+                      averageResult: validCount > 0 ? Math.round(totalPercent / validCount) : 0,
+                      totalOpens,
+                      videosWatched,
+                      totalVideoViews,
+                      totalLectureTime,
+                      totalVideosInPlatform
+                    });
                   });
                 }
               });
@@ -428,11 +449,11 @@ export default function Profile({ onNavigate }: ProfileProps) {
 
                   <div className="flex flex-wrap justify-center gap-6">
                     <CircularProgress 
-                      percentage={0} 
+                      percentage={stats.totalVideosInPlatform > 0 ? Math.round((stats.videosWatched / stats.totalVideosInPlatform) * 100) : 0} 
                       color="#f43f5e" 
                       title={t('videosWatched')}
-                      subtitle1={`0 ${t('videoCount')}`}
-                      subtitle2={`${t('from')} 0`}
+                      subtitle1={`${stats.videosWatched} ${t('videoCount')}`}
+                      subtitle2={`${t('from')} ${stats.totalVideosInPlatform}`}
                       subtitleColor="bg-burgundy-500"
                     />
                     <CircularProgress 
@@ -469,14 +490,14 @@ export default function Profile({ onNavigate }: ProfileProps) {
                      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 transition-colors">
                        <span className="text-slate-700 dark:text-slate-300 font-bold">{t('totalLectureTime')}</span>
                        <div className="px-4 py-1.5 bg-burgundy-50 dark:bg-burgundy-500/10 border border-burgundy-200 dark:border-burgundy-500/20 rounded-full text-burgundy-600 dark:text-burgundy-400 text-sm font-bold">
-                         0 {t('minuteCount')}
+                         {stats.totalLectureTime} {t('minuteCount')}
                        </div>
                      </div>
                      
                      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 transition-colors">
                        <span className="text-slate-700 dark:text-slate-300 font-bold">{t('totalVideoViews')}</span>
                        <div className="px-4 py-1.5 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-full text-yellow-600 dark:text-yellow-400 text-sm font-bold">
-                         0 {t('timeCount')}
+                         {stats.totalVideoViews} {t('timeCount')}
                        </div>
                      </div>
 
