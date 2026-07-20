@@ -196,17 +196,6 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
       setChatStep('chat');
       localStorage.setItem('chat_step', 'chat');
       
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: 'bot-4',
-          text: `تم استلام رسالتك. سيقوم أحد ممثلي خدمة العملاء بالرد عليك قريباً.`,
-          sender: 'support',
-          created_at: new Date().toISOString(),
-          isLocal: true
-        }]);
-      }, 500);
-
-      // Now save the initial combined message to Supabase
       const combinedMessage = `الاسم: ${guestData.name}\nرقم الهاتف: ${guestData.phone}\nالمشكلة: ${userText}`;
       
       const newMsg = {
@@ -217,7 +206,41 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
         text: combinedMessage,
       };
 
-      await supabase.from('support_messages').insert([newMsg]);
+      const { error: insertError } = await supabase.from('support_messages').insert([newMsg]);
+      if (insertError) {
+        console.warn('Supabase insert error:', insertError);
+      }
+      
+      // Call Gemini AI
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userText })
+        });
+        const data = await response.json();
+        
+        if (data.reply) {
+          const botMsg = {
+            session_id: sessionId,
+            sender: 'support',
+            text: data.reply
+          };
+          
+          setMessages(prev => [...prev, {
+            id: Date.now().toString() + '-bot',
+            text: data.reply,
+            sender: 'support',
+            created_at: new Date().toISOString(),
+            isLocal: true
+          }]);
+          
+          await supabase.from('support_messages').insert([botMsg]);
+        }
+      } catch (err) {
+        console.error('Gemini error:', err);
+      }
+      
       return;
     }
 
@@ -230,8 +253,37 @@ export default function LiveChat({ isLoggedIn }: { isLoggedIn: boolean }) {
 
       const { error } = await supabase.from('support_messages').insert([newMsg]);
       if (error) {
-        console.error(error);
-        toast.error('فشل إرسال الرسالة');
+        console.warn('Supabase insert error:', error);
+      }
+
+      // Call Gemini AI
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userText })
+        });
+        const data = await response.json();
+        
+        if (data.reply) {
+          const botMsg = {
+            ...(userId ? { student_id: userId } : { session_id: sessionId }),
+            sender: 'support',
+            text: data.reply
+          };
+          
+          setMessages(prev => [...prev, {
+            id: Date.now().toString() + '-bot',
+            text: data.reply,
+            sender: 'support',
+            created_at: new Date().toISOString(),
+            isLocal: true
+          }]);
+          
+          await supabase.from('support_messages').insert([botMsg]);
+        }
+      } catch (err) {
+        console.error('Gemini error:', err);
       }
     }
   };
