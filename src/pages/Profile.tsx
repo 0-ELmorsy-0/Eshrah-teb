@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import fpPromise from '@fingerprintjs/fingerprintjs';
 import { User, Phone, Mail, Star, FileText, CreditCard, CheckCircle, Clock, AlertCircle, ShieldCheck, BookOpen, Key, LogIn, Eye, Video, MapPin, CheckCircle2, History, ArrowLeft, Copy, XCircle, Check } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../lib/supabase';
@@ -82,6 +83,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const [homeworkResults, setHomeworkResults] = useState<any[]>([]);
   const [chargeRequests, setChargeRequests] = useState<any[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [localDeviceId, setLocalDeviceId] = useState<string | null>(null);
 
   const navigateToCourse = (course: any) => {
     if (onNavigate) {
@@ -163,12 +165,11 @@ export default function Profile({ onNavigate }: ProfileProps) {
         if (freeCoursesData && !freeError) combinedData = [...combinedData, ...freeCoursesData];
 
         const mappedCourses = combinedData.map(d => {
-          const storedProgress = localStorage.getItem(`course_progress_${d.id}`);
           return {
             id: d.id,
             image: d.image_url || "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=800&auto=format&fit=crop",
             title: d.title,
-            progress: storedProgress ? parseInt(storedProgress, 10) : 0
+            progress: 0 // Progress needs to be fetched from DB in the future
           };
         });
         setSubscribedCourses(mappedCourses);

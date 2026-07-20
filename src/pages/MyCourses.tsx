@@ -41,12 +41,11 @@ export default function MyCourses({ onNavigate, userSemester }: MyCoursesProps) 
         if (freeCoursesData && !freeError) combinedData = [...combinedData, ...freeCoursesData];
 
         const mappedCourses = combinedData.map(d => {
-          const storedProgress = localStorage.getItem(`course_progress_${d.id}`);
           return {
             id: d.id,
             image: d.image_url || "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=800&auto=format&fit=crop",
             title: d.title,
-            progress: storedProgress ? parseInt(storedProgress, 10) : 0,
+            progress: 0, // Progress needs to be fetched from DB in the future
             price: d.price || 'مجانًا',
             features: d.features || []
           };

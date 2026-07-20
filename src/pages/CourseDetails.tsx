@@ -51,27 +51,9 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
   const [isLoadingExam, setIsLoadingExam] = useState(false);
   const [userAttempts, setUserAttempts] = useState<Record<string, number>>({});
   const [isStudioMode, setIsStudioMode] = useState(false);
-  const [courseProgress, setCourseProgress] = useState(() => {
-    if (course?.id) {
-       const saved = localStorage.getItem(`course_progress_${course.id}`);
-       return saved ? parseInt(saved, 10) : 0;
-    }
-    return 0;
-  });
-  const [completedItemsCount, setCompletedItemsCount] = useState(() => {
-    if (course?.id) {
-       const saved = localStorage.getItem(`course_completed_${course.id}`);
-       return saved ? parseInt(saved, 10) : 0;
-    }
-    return 0;
-  });
-  const [totalItemsCount, setTotalItemsCount] = useState(() => {
-    if (course?.id) {
-       const saved = localStorage.getItem(`course_total_${course.id}`);
-       return saved ? parseInt(saved, 10) : 0;
-    }
-    return 0;
-  });
+  const [courseProgress, setCourseProgress] = useState(0);
+  const [completedItemsCount, setCompletedItemsCount] = useState(0);
+  const [totalItemsCount, setTotalItemsCount] = useState(0);
   const [viewedVideoUrls, setViewedVideoUrls] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState('');
   
@@ -99,12 +81,7 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
   };
 
   useEffect(() => {
-    if (activeVideo?.url) {
-      const saved = localStorage.getItem(`notes_${activeVideo.url}`);
-      setNotes(saved || '');
-    } else {
-      setNotes('');
-    }
+    setNotes('');
   }, [activeVideo]);
 
 
@@ -368,7 +345,7 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                         parsedItems = JSON.parse(parsedItems);
                       } catch(e) {}
                     }
-                    const moduleItems = Array.isArray(parsedItems) ? parsedItems.map((i: any) => ({
+                    const moduleItems: any[] = Array.isArray(parsedItems) ? parsedItems.map((i: any) => ({
                       title: i.title,
                       url: i.url,
                       icon: i.icon === 'MonitorPlay' ? <MonitorPlay className="w-5 h-5 text-burgundy-500" /> :
@@ -500,32 +477,13 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
     setCompletedItemsCount(completed);
     const calculatedProgress = total > 0 ? Math.round((completed / total) * 100) : 0;
     setCourseProgress(calculatedProgress);
-    if (course?.id) {
-       localStorage.setItem(`course_progress_${course.id}`, calculatedProgress.toString());
-       localStorage.setItem(`course_completed_${course.id}`, completed.toString());
-       localStorage.setItem(`course_total_${course.id}`, total.toString());
-    }
   }, [dbSubjects, userAttempts, viewedVideoUrls, course?.id]);
 
   useEffect(() => {
     if (!isWalletLoading) {
       setIsSubscribed(hasSubscription(String(course?.id || '')));
-    } else {
-      // Keep existing subscription state or read from localStorage as a fallback?
-      // Actually, if we have a locally cached boolean, that'd prevent the flash.
-      const cachedSub = localStorage.getItem(`course_subscribed_${course?.id}`);
-      if (cachedSub === 'true') {
-        setIsSubscribed(true);
-      }
     }
   }, [course?.id, hasSubscription, isWalletLoading]);
-
-  // Persist subscription when it's resolved and true
-  useEffect(() => {
-    if (isSubscribed && course?.id) {
-       localStorage.setItem(`course_subscribed_${course.id}`, 'true');
-    }
-  }, [isSubscribed, course?.id]);
 
   const initiateSubscribe = () => {
     if (!isLoggedIn) {
@@ -729,9 +687,8 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                       value={notes}
                       onChange={(e) => {
                         setNotes(e.target.value);
-                        localStorage.setItem(`notes_${activeVideo.url}`, e.target.value);
                       }}
-                      placeholder="اكتب ملاحظاتك هنا أثناء مشاهدة الدرس... (يتم الحفظ تلقائياً)"
+                      placeholder="اكتب ملاحظاتك هنا أثناء مشاهدة الدرس..."
                       className="w-full min-h-[120px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-burgundy-500 resize-y"
                     ></textarea>
                  </div>
@@ -911,7 +868,18 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
               </div>
           )}
 
-          {isSubscribed && (
+          {(isLoadingContent || isWalletLoading) ? (
+            <div className="relative overflow-hidden bg-slate-100 dark:bg-slate-800/50 rounded-3xl p-8 mb-8 animate-pulse border border-slate-200 dark:border-slate-700/50">
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+                  <div className="space-y-4">
+                    <div className="h-8 w-48 bg-slate-300 dark:bg-slate-700 rounded-lg"></div>
+                    <div className="h-4 w-64 bg-slate-200 dark:bg-slate-700/50 rounded-lg"></div>
+                  </div>
+                  <div className="h-14 w-24 bg-slate-300 dark:bg-slate-700 rounded-xl"></div>
+               </div>
+               <div className="w-full bg-slate-200 dark:bg-slate-700 h-4 rounded-full"></div>
+            </div>
+          ) : isSubscribed ? (
             <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 to-[#1a1f2b] dark:from-[#151b23] dark:to-[#0f1319] rounded-3xl p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border border-slate-800/50 mb-8 transition-all duration-300 hover:shadow-[0_10px_50px_-10px_rgba(225,29,72,0.15)]">
               {/* Decorative backgrounds */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-burgundy-500/10 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none"></div>
@@ -985,7 +953,7 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
                  </button>
               )}
             </div>
-          )}
+          ) : null}
           <div className="bg-white dark:bg-[#151b23] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-[#202936] mb-6 flex items-center justify-between relative">
             <div className="absolute right-0 left-0 top-1/2 h-px bg-slate-200 dark:bg-slate-700 -z-10"></div>
             <div className="bg-white dark:bg-[#151b23] px-6 py-2 mx-auto relative z-10">
