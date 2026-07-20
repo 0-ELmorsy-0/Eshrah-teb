@@ -41,3 +41,7 @@ body {
   --plyr-color-main: #900B39;
   --plyr-font-family: "Cairo", sans-serif;
 }
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}

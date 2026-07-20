@@ -5,9 +5,11 @@ export function useWallet() {
   const [balance, setBalance] = useState(0);
   const [subscriptions, setSubscriptions] = useState<string[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchWallet() {
+      setIsLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUserId(session.user.id);
@@ -28,6 +30,7 @@ export function useWallet() {
         setBalance(0);
         setSubscriptions([]);
       }
+      setIsLoading(false);
     }
     fetchWallet();
 
@@ -122,5 +125,5 @@ export function useWallet() {
     return subscriptions.includes(courseId);
   }, [subscriptions]);
 
-  return { balance, subscriptions, chargeWallet, subscribeToCourse, hasSubscription };
+  return { balance, subscriptions, chargeWallet, subscribeToCourse, hasSubscription, isLoading };
 }

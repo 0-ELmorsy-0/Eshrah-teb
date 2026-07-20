@@ -32,7 +32,7 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
   const [isLoadingContent, setIsLoadingContent] = useState(true);
   
   const [showSubscribeConfirm, setShowSubscribeConfirm] = useState(false);
-  const { balance, subscribeToCourse, hasSubscription } = useWallet();
+  const { balance, subscribeToCourse, hasSubscription, isLoading: isWalletLoading } = useWallet();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showCertModal, setShowCertModal] = useState(false);
   const [certStudentName, setCertStudentName] = useState("");
@@ -51,9 +51,27 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
   const [isLoadingExam, setIsLoadingExam] = useState(false);
   const [userAttempts, setUserAttempts] = useState<Record<string, number>>({});
   const [isStudioMode, setIsStudioMode] = useState(false);
-  const [courseProgress, setCourseProgress] = useState(0);
-  const [completedItemsCount, setCompletedItemsCount] = useState(0);
-  const [totalItemsCount, setTotalItemsCount] = useState(0);
+  const [courseProgress, setCourseProgress] = useState(() => {
+    if (course?.id) {
+       const saved = localStorage.getItem(`course_progress_${course.id}`);
+       return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
+  const [completedItemsCount, setCompletedItemsCount] = useState(() => {
+    if (course?.id) {
+       const saved = localStorage.getItem(`course_completed_${course.id}`);
+       return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
+  const [totalItemsCount, setTotalItemsCount] = useState(() => {
+    if (course?.id) {
+       const saved = localStorage.getItem(`course_total_${course.id}`);
+       return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
   const [viewedVideoUrls, setViewedVideoUrls] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState('');
   
@@ -484,12 +502,30 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
     setCourseProgress(calculatedProgress);
     if (course?.id) {
        localStorage.setItem(`course_progress_${course.id}`, calculatedProgress.toString());
+       localStorage.setItem(`course_completed_${course.id}`, completed.toString());
+       localStorage.setItem(`course_total_${course.id}`, total.toString());
     }
   }, [dbSubjects, userAttempts, viewedVideoUrls, course?.id]);
 
   useEffect(() => {
-    setIsSubscribed(hasSubscription(String(course?.id || '')));
-  }, [course?.id, hasSubscription]);
+    if (!isWalletLoading) {
+      setIsSubscribed(hasSubscription(String(course?.id || '')));
+    } else {
+      // Keep existing subscription state or read from localStorage as a fallback?
+      // Actually, if we have a locally cached boolean, that'd prevent the flash.
+      const cachedSub = localStorage.getItem(`course_subscribed_${course?.id}`);
+      if (cachedSub === 'true') {
+        setIsSubscribed(true);
+      }
+    }
+  }, [course?.id, hasSubscription, isWalletLoading]);
+
+  // Persist subscription when it's resolved and true
+  useEffect(() => {
+    if (isSubscribed && course?.id) {
+       localStorage.setItem(`course_subscribed_${course.id}`, 'true');
+    }
+  }, [isSubscribed, course?.id]);
 
   const initiateSubscribe = () => {
     if (!isLoggedIn) {
@@ -876,17 +912,39 @@ export default function CourseDetails({ course, isLoggedIn, onNavigate }: Course
           )}
 
           {isSubscribed && (
-            <div className="bg-white dark:bg-[#151b23] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-[#202936] mb-8">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-bold text-slate-800 dark:text-white">نسبة إنجاز الكورس</h3>
-                <span className="text-burgundy-600 font-bold">{courseProgress}%</span>
+            <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 to-[#1a1f2b] dark:from-[#151b23] dark:to-[#0f1319] rounded-3xl p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border border-slate-800/50 mb-8 transition-all duration-300 hover:shadow-[0_10px_50px_-10px_rgba(225,29,72,0.15)]">
+              {/* Decorative backgrounds */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-burgundy-500/10 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] -ml-20 -mb-20 pointer-events-none"></div>
+              
+              <div className="relative z-10">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
+                      <div className="p-2 bg-burgundy-500/10 rounded-lg">
+                        <svg className="w-6 h-6 text-burgundy-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+                      </div>
+                      مسار إنجازك
+                    </h3>
+                    <p className="text-slate-400 text-sm font-medium">
+                      لقد أتممت <span className="text-white font-bold">{completedItemsCount}</span> من أصل <span className="text-white font-bold">{totalItemsCount}</span> درس ومحتوى
+                    </p>
+                  </div>
+                  <div className="flex items-baseline gap-1 bg-black/20 px-4 py-2 rounded-xl border border-white/5 backdrop-blur-sm">
+                    <span className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-burgundy-400 to-red-400">{courseProgress}</span>
+                    <span className="text-burgundy-400 font-bold text-lg">%</span>
+                  </div>
+                </div>
+                
+                <div className="w-full bg-black/40 rounded-full h-4 mb-3 p-1 border border-white/5 backdrop-blur-sm shadow-inner" dir="ltr">
+                  <div className="h-full rounded-full bg-gradient-to-r from-burgundy-600 via-burgundy-500 to-red-400 shadow-[0_0_15px_rgba(225,29,72,0.4)] transition-all duration-1000 ease-out float-right relative overflow-hidden" style={{ width: `${courseProgress}%` }}>
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent w-full"></div>
+                    <div className="absolute top-0 bottom-0 left-0 right-0 overflow-hidden rounded-full">
+                      <div className="w-full h-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-4 overflow-hidden" dir="ltr">
-                <div className="bg-burgundy-500 h-3 rounded-full transition-all duration-1000 float-right" style={{ width: `${courseProgress}%` }}></div>
-              </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                أكملت {completedItemsCount} من أصل {totalItemsCount} محتوى
-              </p>
               
               {canIssueCertificate && (
                  <button onClick={async () => {
